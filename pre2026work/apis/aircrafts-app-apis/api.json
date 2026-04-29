@@ -1,0 +1,38 @@
+{
+  "apiRevision": "1",
+  "apiRevisionDescription": null,
+  "apiType": null,
+  "apiVersion": null,
+  "apiVersionDescription": null,
+  "apiVersionSet": null,
+  "apiVersionSetId": null,
+  "authenticationSettings": {
+    "oAuth2": null,
+    "oAuth2AuthenticationSettings": [],
+    "openid": null,
+    "openidAuthenticationSettings": []
+  },
+  "contact": null,
+  "description": "This API exposes operations to view a product catalog and parts ordering",
+  "displayName": "aircrafts-app-apis",
+  "id": "/subscriptions/51e82443-e68f-443c-b5c8-0097efa74abb/resourceGroups/rg-aircrafts-app/providers/Microsoft.ApiManagement/service/apim-contoso1media/apis/aircrafts-app-apis",
+  "isCurrent": true,
+  "isOnline": null,
+  "license": null,
+  "name": "aircrafts-app-apis",
+  "path": "aircrafts-app-apis",
+  "protocols": [
+    "https"
+  ],
+  "resourceGroup": "rg-aircrafts-app",
+  "serviceUrl": "https://func-aircrafts-app.azurewebsites.net/api",
+  "sourceApiId": null,
+  "subscriptionKeyParameterNames": {
+    "bearer": null,
+    "header": "Ocp-Apim-Subscription-Key",
+    "query": "subscription-key"
+  },
+  "subscriptionRequired": false,
+  "termsOfServiceUrl": null,
+  "type": "Microsoft.ApiManagement/service/apis"
+}

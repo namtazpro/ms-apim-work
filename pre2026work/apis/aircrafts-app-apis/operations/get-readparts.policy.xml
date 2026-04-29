@@ -1,0 +1,56 @@
+<!--
+    IMPORTANT:
+    - Policy elements can appear only within the <inbound>, <outbound>, <backend> section elements.
+    - To apply a policy to the incoming request (before it is forwarded to the backend service), place a corresponding policy element within the <inbound> section element.
+    - To apply a policy to the outgoing response (before it is sent back to the caller), place a corresponding policy element within the <outbound> section element.
+    - To add a policy, place the cursor at the desired insertion point and select a policy from the sidebar.
+    - To remove a policy, delete the corresponding policy statement from the policy document.
+    - Position the <base> element within a section element to inherit all policies from the corresponding section element in the enclosing scope.
+    - Remove the <base> element to prevent inheriting policies from the corresponding section element in the enclosing scope.
+    - Policies are applied in the order of their appearance, from the top down.
+    - Comments within policy elements are not supported and may disappear. Place your comments between policy elements or at a higher level scope.
+-->
+<policies>
+	<inbound>
+		<base />
+		<validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized" require-expiration-time="true" require-scheme="Bearer" require-signed-tokens="true">
+			<openid-config url="https://login.microsoftonline.com/3800381b-b46d-4abc-9a68-389fcef32cf1/.well-known/openid-configuration" />
+			<required-claims>
+				<claim name="roles" match="all">
+					<value>Parts.Read</value>
+				</claim>
+			</required-claims>
+		</validate-jwt>
+		<set-header name="token-sub" exists-action="override">
+			<value>@{
+    string claim_sub = "NOAUTH";
+    string authHeader = context.Request.Headers.GetValueOrDefault("Authorization", "");
+    if (authHeader?.Length > 0)
+    {
+        string[] authHeaderParts = authHeader.Split(' ');
+        if (authHeaderParts?.Length == 2 && authHeaderParts[0].Equals("Bearer", StringComparison.InvariantCultureIgnoreCase))
+        {
+            Jwt jwt;
+            if (authHeaderParts[1].TryParseJwt(out jwt))
+            {
+                claim_sub = jwt.Claims.GetValueOrDefault("sub", "no-claim-value");
+            }
+        }
+    }
+    return claim_sub;
+  }</value>
+		</set-header>
+		<set-header id="apim-generated-policy" name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+		<set-header id="Authorization" name="Authorization" exists-action="delete" />
+		<authentication-managed-identity resource="api://648b429c-fe09-44cb-9ea9-2bb37c66a73e" />
+	</inbound>
+	<backend>
+		<base />
+	</backend>
+	<outbound>
+		<base />
+	</outbound>
+	<on-error>
+		<base />
+	</on-error>
+</policies>

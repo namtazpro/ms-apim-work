@@ -1,0 +1,24 @@
+<policies>
+	<inbound>
+		<base />
+		<set-method id="apim-generated-policy">GET</set-method>
+		<rewrite-uri id="apim-generated-policy" template="/manual/paths/invoke/?api-version=2016-06-01&amp;sp=/triggers/manual/run&amp;sv=1.0&amp;sig={{logic-cons-consumer2_manual-invoke_60ba42ce333f5ec575e50bfe}}" />
+		<set-header id="apim-generated-policy" name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+	</inbound>
+	<backend>
+		<base />
+	</backend>
+	<outbound>
+		<set-header name="record_count2" exists-action="override">
+			<value>@{ 
+                var sBody = context.Response.Body.As<JObject>(preserveContent: true); 
+                JArray jsonarray = (JArray)sBody["CTRIES"];
+                return jsonarray.Count().ToString();
+            }</value>
+		</set-header>
+		<base />
+	</outbound>
+	<on-error>
+		<base />
+	</on-error>
+</policies>

@@ -1,0 +1,38 @@
+{
+  "apiRevision": "1",
+  "apiRevisionDescription": null,
+  "apiType": null,
+  "apiVersion": null,
+  "apiVersionDescription": null,
+  "apiVersionSet": null,
+  "apiVersionSetId": null,
+  "authenticationSettings": {
+    "oAuth2": null,
+    "oAuth2AuthenticationSettings": [],
+    "openid": null,
+    "openidAuthenticationSettings": []
+  },
+  "contact": null,
+  "description": "Azure Logic App.",
+  "displayName": "logic-cons-consumer1",
+  "id": "/subscriptions/51e82443-e68f-443c-b5c8-0097efa74abb/resourceGroups/rg-aircrafts-app/providers/Microsoft.ApiManagement/service/apim-contoso1media/apis/logic-cons-consumer1",
+  "isCurrent": true,
+  "isOnline": null,
+  "license": null,
+  "name": "logic-cons-consumer1",
+  "path": "",
+  "protocols": [
+    "https"
+  ],
+  "resourceGroup": "rg-aircrafts-app",
+  "serviceUrl": "https://prod-199.westeurope.logic.azure.com/workflows/6d5d1c3d88c244a498ffe76b145c4ad7/triggers",
+  "sourceApiId": null,
+  "subscriptionKeyParameterNames": {
+    "bearer": null,
+    "header": "Ocp-Apim-Subscription-Key",
+    "query": "subscription-key"
+  },
+  "subscriptionRequired": true,
+  "termsOfServiceUrl": null,
+  "type": "Microsoft.ApiManagement/service/apis"
+}

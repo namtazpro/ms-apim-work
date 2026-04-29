@@ -1,0 +1,234 @@
+
+
+Run
+
+Save
+
+Discard
+
+Parameters
+
+Logic Apps Icon
+Designer
+
+
+Connections
+
+Errors
+
+Info
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+⌄
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "triggers": {
+            "manual": {
+                "type": "Request",
+                "kind": "Http",
+                "inputs": {
+                    "method": "GET",
+                    "schema": {
+                        "properties": {
+                            "geo": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                }
+            }
+        },
+        "actions": {
+            "Get_Sys_data_Countries": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://prod-121.westeurope.logic.azure.com:443/workflows/04dce4c00da049ad9a49aed1bf4537ed/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=9ATp1NIz1XVIUCZNJBOVBsVxfjglulLKZazDU36jESo",
+                    "method": "GET",
+                    "headers": {
+                        "Content-Type": "application/json"
+                    }
+                },
+                "runAfter": {}
+            },
+            "Response": {
+                "type": "Response",
+                "kind": "Http",
+                "inputs": {
+                    "statusCode": 200,
+                    "body": "@body('Transform_JSON_to_JSON')"
+                },
+                "runAfter": {
+                    "Transform_JSON_to_JSON": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Transform_JSON_to_JSON": {
+                "type": "Liquid",
+                "kind": "JsonToJson",
+                "inputs": {
+                    "content": "@body('Get_Sys_data_Countries')",
+                    "integrationAccount": {
+                        "map": {
+                            "name": "liquid_countries_canonical_to_consumer2"
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Transform_JSON_to_TEXT": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Transform_JSON_to_TEXT": {
+                "type": "Liquid",
+                "kind": "JsonToText",
+                "inputs": {
+                    "content": "@body('Get_Sys_data_Countries')",
+                    "integrationAccount": {
+                        "map": {
+                            "name": "liquid_countries_canonical_to_consumer2"
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Get_Sys_data_Countries": [
+                        "Succeeded"
+                    ]
+                }
+            }
+        },
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "type": "Object",
+                "defaultValue": {}
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {

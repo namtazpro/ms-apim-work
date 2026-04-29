@@ -1,0 +1,133 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "triggers": {
+            "manual": {
+                "type": "Request",
+                "kind": "Http",
+                "inputs": {
+                    "method": "GET",
+                    "schema": {
+                        "properties": {
+                            "geo": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                }
+            }
+        },
+        "actions": {
+            "Build_output_message": {
+                "type": "Select",
+                "inputs": {
+                    "from": "@body('Filter_Europe_only')",
+                    "select": {
+                        "CDE": "@item()?['code']",
+                        "CTY": "@item()?['name']",
+                        "TMP": "@mul(int(item()?['avg_temp']),10)"
+                    }
+                },
+                "runAfter": {
+                    "Filter_Europe_only": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Filter_Europe_only": {
+                "type": "Query",
+                "inputs": {
+                    "from": "@body('Parse_Source_Data')?['countries']",
+                    "where": "@equals(item()?['geo'], concat('Europe'))"
+                },
+                "runAfter": {
+                    "Parse_Source_Data": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "HTTP": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://prod-121.westeurope.logic.azure.com:443/workflows/04dce4c00da049ad9a49aed1bf4537ed/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=9ATp1NIz1XVIUCZNJBOVBsVxfjglulLKZazDU36jESo",
+                    "method": "GET",
+                    "headers": {
+                        "Content-Type": "application/json"
+                    }
+                },
+                "runAfter": {}
+            },
+            "Parse_Source_Data": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('HTTP')",
+                    "schema": {
+                        "properties": {
+                            "countries": {
+                                "items": {
+                                    "properties": {
+                                        "avg_temp": {
+                                            "type": "string"
+                                        },
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "geo": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "name"
+                                    ],
+                                    "type": "object"
+                                },
+                                "type": "array"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "runAfter": {
+                    "HTTP": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Response": {
+                "type": "Response",
+                "kind": "Http",
+                "inputs": {
+                    "statusCode": 200,
+                    "headers": {
+                        "record_count": "@{length(body('HTTP').Countries)}"
+                    },
+                    "body": "@body('Build_output_message')"
+                },
+                "runAfter": {
+                    "Build_output_message": [
+                        "Succeeded"
+                    ]
+                }
+            }
+        },
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "type": "Object",
+                "defaultValue": {}
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "type": "Object",
+            "value": {}
+        }
+    }
+}

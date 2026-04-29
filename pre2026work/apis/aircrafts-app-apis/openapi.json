@@ -1,0 +1,157 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "aircrafts-app-apis",
+    "description": "This API exposes operations to view a product catalog and parts ordering",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "https://apim-contoso1media.azure-api.net/aircrafts-app-apis"
+    }
+  ],
+  "paths": {
+    "/CreateBooking": {
+      "post": {
+        "summary": "CreateBooking",
+        "operationId": "post-createbooking",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "enum": [
+                ""
+              ],
+              "type": "",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/CreateParts": {
+      "post": {
+        "summary": "CreateParts",
+        "operationId": "post-createparts",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "enum": [
+                ""
+              ],
+              "type": "",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/FuncCheckType": {
+      "get": {
+        "summary": "FuncCheckType",
+        "operationId": "get-funcchecktype",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "enum": [
+                ""
+              ],
+              "type": "",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/ReadBookings": {
+      "get": {
+        "summary": "ReadBookings",
+        "operationId": "get-readbookings",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "enum": [
+                ""
+              ],
+              "type": "",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/ReadParts": {
+      "get": {
+        "summary": "ReadParts",
+        "operationId": "get-readparts",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "enum": [
+                ""
+              ],
+              "type": "",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyHeader": {
+        "type": "apiKey",
+        "name": "Ocp-Apim-Subscription-Key",
+        "in": "header"
+      },
+      "apiKeyQuery": {
+        "type": "apiKey",
+        "name": "subscription-key",
+        "in": "query"
+      }
+    }
+  },
+  "security": [
+    {
+      "apiKeyHeader": []
+    },
+    {
+      "apiKeyQuery": []
+    }
+  ]
+}
