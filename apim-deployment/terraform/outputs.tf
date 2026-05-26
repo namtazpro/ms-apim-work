@@ -18,3 +18,11 @@ output "apim_principal_id" {
   description = "Object ID of the APIM system-assigned managed identity."
   value       = module.apim.principal_id
 }
+
+output "mcp_endpoints" {
+  description = "Full MCP endpoint URLs (mcp_server_key -> URL). Plug into your MCP client config (.vscode/mcp.json, Claude, etc.)."
+  value = {
+    for k, p in module.mcp.mcp_endpoint_paths :
+    k => "${module.apim.gateway_url}/${p}"
+  }
+}

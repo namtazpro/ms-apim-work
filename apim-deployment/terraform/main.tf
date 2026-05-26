@@ -51,6 +51,16 @@ module "products" {
   depends_on = [module.apis]
 }
 
+module "mcp" {
+  source = "./modules/mcp"
+
+  apim_id        = module.apim.id
+  source_api_ids = module.apis.api_ids
+  mcp_servers    = var.mcp_servers
+
+  depends_on = [module.apis]
+}
+
 module "identity" {
   source = "./modules/identity"
 

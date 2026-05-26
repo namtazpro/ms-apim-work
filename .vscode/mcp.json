@@ -1,0 +1,19 @@
+{
+  "inputs": [
+    {
+      "id": "apim-subscription-key",
+      "type": "promptString",
+      "description": "APIM subscription key (Ocp-Apim-Subscription-Key) for the aviationstack-mcp endpoint",
+      "password": true
+    }
+  ],
+  "servers": {
+    "apim-aviationstack": {
+      "type": "http",
+      "url": "https://apimv2may2026.azure-api.net/aviationstack-mcp/mcp",
+      "headers": {
+        "Ocp-Apim-Subscription-Key": "${input:apim-subscription-key}"
+      }
+    }
+  }
+}

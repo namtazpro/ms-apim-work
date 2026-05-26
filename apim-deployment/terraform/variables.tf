@@ -276,3 +276,45 @@ variable "groups" {
   }))
   default = {}
 }
+
+variable "mcp_servers" {
+  description = <<-EOT
+    Map of MCP servers to expose. Each entry creates a separate APIM API of
+    type=mcp whose tools delegate to operations of an existing source API
+    (see `var.apis`). The MCP endpoint URL is:
+        https://<apim>.azure-api.net/<path>/mcp
+
+    Example:
+
+    {
+      "aviationstack-mcp" = {
+        display_name          = "Aviationstack MCP"
+        description           = "MCP server exposing the listFlights tool."
+        path                  = "aviationstack-mcp"
+        subscription_required = false
+        tools = [
+          {
+            name             = "realTimeFlightData"
+            description      = "Returns real-time flight status."
+            source_api_name  = "aviationstack" # key in var.apis
+            source_operation = "listFlights"   # operationId in the source OpenAPI
+          }
+        ]
+      }
+    }
+  EOT
+  type = map(object({
+    display_name          = string
+    description           = optional(string, "")
+    path                  = string
+    protocols             = optional(list(string), ["https"])
+    subscription_required = optional(bool, true)
+    tools = list(object({
+      name             = string
+      description      = string
+      source_api_name  = string
+      source_operation = string
+    }))
+  }))
+  default = {}
+}

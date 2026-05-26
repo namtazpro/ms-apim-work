@@ -6,3 +6,4 @@ pre2026work folder: These examples were deployed in the subscription VisualStudi
 apim-deployment: scripting of APIM and APIs scripting.
 
 
+c
