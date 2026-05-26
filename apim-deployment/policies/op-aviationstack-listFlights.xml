@@ -1,0 +1,34 @@
+<!--
+    Operation policy: throttle listFlights to 5 calls per 60 seconds per caller.
+
+    Why rate-limit-by-key (not rate-limit):
+      <rate-limit> only counts requests scoped to a PRODUCT subscription.
+      The built-in master/admin subscription bypasses it. <rate-limit-by-key>
+      uses an explicit counter key, so it applies to every caller including
+      the master subscription.
+
+    Counter key strategy: subscription id when present, else caller IP.
+    This means each subscription (and each anonymous caller IP) gets its own
+    5/min budget. Use a constant key (e.g. "global") if you want one shared
+    cap across all callers.
+
+    <base /> inherits the API policy (backend rewrite + access_key injection),
+    which itself inherits the global policy (correlation id).
+-->
+<policies>
+    <inbound>
+        <base />
+        <rate-limit-by-key calls="5"
+                           renewal-period="60"
+                           counter-key="@(context.Subscription?.Id ?? context.Request.IpAddress)" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
