@@ -1,0 +1,19 @@
+<!--
+    Global APIM policy (service scope).
+    NOTE: At the global scope there is no parent, so <base /> must NOT be used here.
+    Use <base /> in API / product / operation policies to inherit this global policy.
+    Edit freely, or set var.global_policy_xml_path = "" to skip.
+-->
+<policies>
+    <inbound>
+        <!-- Set a correlation id if the caller didn't supply one. -->
+        <set-header name="x-correlation-id" exists-action="skip">
+            <value>@(Guid.NewGuid().ToString())</value>
+        </set-header>
+    </inbound>
+    <backend>
+        <forward-request />
+    </backend>
+    <outbound />
+    <on-error />
+</policies>

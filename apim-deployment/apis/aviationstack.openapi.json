@@ -1,0 +1,279 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Aviationstack API",
+    "version": "1.0.0",
+    "description": "Proxy of the public Aviationstack v1 API (https://aviationstack.com). The upstream `access_key` query parameter is injected by APIM — callers do NOT need to provide it.",
+    "contact": {
+      "name": "Aviationstack",
+      "url": "https://aviationstack.com"
+    }
+  },
+  "servers": [
+    { "url": "https://api.aviationstack.com/v1" }
+  ],
+  "tags": [
+    { "name": "Flights" },
+    { "name": "Reference data" },
+    { "name": "Schedules" }
+  ],
+  "paths": {
+    "/flights": {
+      "get": {
+        "operationId": "listFlights",
+        "tags": ["Flights"],
+        "summary": "Real-time flight data",
+        "description": "Returns real-time flight status. Free plans typically only allow real-time data — historical/future endpoints require a paid plan.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "name": "callsign",        "in": "query", "schema": { "type": "string" }, "description": "Flight callsign." },
+          { "name": "flight_status",   "in": "query", "schema": { "type": "string", "enum": ["scheduled", "active", "landed", "cancelled", "incident", "diverted"] } },
+          { "name": "flight_date",     "in": "query", "schema": { "type": "string", "format": "date" }, "description": "Filter by date (YYYY-MM-DD)." },
+          { "name": "dep_iata",        "in": "query", "schema": { "type": "string", "example": "CDG" }, "description": "Departure airport IATA code." },
+          { "name": "arr_iata",        "in": "query", "schema": { "type": "string", "example": "JFK" }, "description": "Arrival airport IATA code." },
+          { "name": "dep_icao",        "in": "query", "schema": { "type": "string" } },
+          { "name": "arr_icao",        "in": "query", "schema": { "type": "string" } },
+          { "name": "airline_name",    "in": "query", "schema": { "type": "string" } },
+          { "name": "airline_iata",    "in": "query", "schema": { "type": "string" } },
+          { "name": "airline_icao",    "in": "query", "schema": { "type": "string" } },
+          { "name": "flight_number",   "in": "query", "schema": { "type": "string" } },
+          { "name": "flight_iata",     "in": "query", "schema": { "type": "string" } },
+          { "name": "flight_icao",     "in": "query", "schema": { "type": "string" } },
+          { "name": "min_delay_dep",   "in": "query", "schema": { "type": "integer" }, "description": "Minimum departure delay in minutes." },
+          { "name": "min_delay_arr",   "in": "query", "schema": { "type": "integer" } },
+          { "name": "max_delay_dep",   "in": "query", "schema": { "type": "integer" } },
+          { "name": "max_delay_arr",   "in": "query", "schema": { "type": "integer" } },
+          { "name": "arr_scheduled_time_arr", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "arr_scheduled_time_dep", "in": "query", "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaginatedOk" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/airports": {
+      "get": {
+        "operationId": "listAirports",
+        "tags": ["Reference data"],
+        "summary": "Look up airports",
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "name": "search",     "in": "query", "schema": { "type": "string" }, "description": "Free-text search across airport name / IATA / ICAO / city." },
+          { "name": "iata_code",  "in": "query", "schema": { "type": "string" } },
+          { "name": "icao_code",  "in": "query", "schema": { "type": "string" } },
+          { "name": "country_iso2", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaginatedOk" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/airlines": {
+      "get": {
+        "operationId": "listAirlines",
+        "tags": ["Reference data"],
+        "summary": "Look up airlines",
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "name": "search",     "in": "query", "schema": { "type": "string" } },
+          { "name": "iata_code",  "in": "query", "schema": { "type": "string" } },
+          { "name": "icao_code",  "in": "query", "schema": { "type": "string" } },
+          { "name": "country_iso2", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaginatedOk" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/airplanes": {
+      "get": {
+        "operationId": "listAirplanes",
+        "tags": ["Reference data"],
+        "summary": "Look up airplanes (tail numbers / registrations)",
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "name": "search",                "in": "query", "schema": { "type": "string" } },
+          { "name": "iata_code_short",       "in": "query", "schema": { "type": "string" } },
+          { "name": "iata_code_long",        "in": "query", "schema": { "type": "string" } },
+          { "name": "iata_type",             "in": "query", "schema": { "type": "string" } },
+          { "name": "registration_number",   "in": "query", "schema": { "type": "string" } },
+          { "name": "production_line",       "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaginatedOk" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/aircraft_types": {
+      "get": {
+        "operationId": "listAircraftTypes",
+        "tags": ["Reference data"],
+        "summary": "Look up aircraft types",
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "name": "search",       "in": "query", "schema": { "type": "string" } },
+          { "name": "iata_code",    "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaginatedOk" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/cities": {
+      "get": {
+        "operationId": "listCities",
+        "tags": ["Reference data"],
+        "summary": "Look up cities",
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "name": "search",       "in": "query", "schema": { "type": "string" } },
+          { "name": "iata_code",    "in": "query", "schema": { "type": "string" } },
+          { "name": "country_iso2", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaginatedOk" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/countries": {
+      "get": {
+        "operationId": "listCountries",
+        "tags": ["Reference data"],
+        "summary": "Look up countries",
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "name": "search",        "in": "query", "schema": { "type": "string" } },
+          { "name": "country_iso2",  "in": "query", "schema": { "type": "string" } },
+          { "name": "country_name",  "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaginatedOk" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/routes": {
+      "get": {
+        "operationId": "listRoutes",
+        "tags": ["Schedules"],
+        "summary": "Look up scheduled routes (paid plans)",
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "name": "dep_iata",     "in": "query", "schema": { "type": "string" } },
+          { "name": "arr_iata",     "in": "query", "schema": { "type": "string" } },
+          { "name": "airline_iata", "in": "query", "schema": { "type": "string" } },
+          { "name": "flight_number","in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaginatedOk" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/timetable": {
+      "get": {
+        "operationId": "listTimetable",
+        "tags": ["Schedules"],
+        "summary": "Airport timetable (paid plans)",
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          { "name": "iataCode", "in": "query", "required": true, "schema": { "type": "string", "example": "CDG" }, "description": "IATA code of the airport to query." },
+          { "name": "type",     "in": "query", "required": true, "schema": { "type": "string", "enum": ["departure", "arrival"] }, "description": "Departures or arrivals." },
+          { "name": "airline_iata", "in": "query", "schema": { "type": "string" } },
+          { "name": "flight_num",   "in": "query", "schema": { "type": "string" } },
+          { "name": "date",         "in": "query", "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaginatedOk" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Limit": {
+        "name": "limit", "in": "query",
+        "description": "Page size (default 100, max usually 100 on free plans).",
+        "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 100 }
+      },
+      "Offset": {
+        "name": "offset", "in": "query",
+        "description": "Pagination offset.",
+        "schema": { "type": "integer", "minimum": 0, "default": 0 }
+      }
+    },
+    "responses": {
+      "PaginatedOk": {
+        "description": "Successful response with paginated data.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Paginated" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing / invalid upstream access key (should not happen — APIM injects it).",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "RateLimited": {
+        "description": "Aviationstack monthly quota or rate limit exceeded.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    },
+    "schemas": {
+      "Paginated": {
+        "type": "object",
+        "properties": {
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "limit":  { "type": "integer" },
+              "offset": { "type": "integer" },
+              "count":  { "type": "integer" },
+              "total":  { "type": "integer" }
+            }
+          },
+          "data": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code":    { "type": "string" },
+              "message": { "type": "string" },
+              "context": { "type": "object", "additionalProperties": true }
+            }
+          }
+        }
+      }
+    }
+  }
+}

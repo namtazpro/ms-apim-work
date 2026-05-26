@@ -1,0 +1,25 @@
+<!--
+    API-scoped policy for the Aviationstack proxy.
+    - Rewrites the backend to https://api.aviationstack.com/v1
+    - Injects the upstream `access_key` query parameter from a named value,
+      so APIM consumers never see the upstream key.
+    - <base /> inherits the global policy (correlation id, etc.).
+-->
+<policies>
+    <inbound>
+        <base />
+        <set-backend-service base-url="https://api.aviationstack.com/v1" />
+        <set-query-parameter name="access_key" exists-action="override">
+            <value>{{aviationstack-access-key}}</value>
+        </set-query-parameter>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

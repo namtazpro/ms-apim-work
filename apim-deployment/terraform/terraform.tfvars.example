@@ -1,0 +1,57 @@
+# Copy this file to terraform.tfvars and edit values before `terraform apply`.
+
+subscription_id     = "8bcaf808-26b1-45e4-8340-ec627a7afa0a"
+resource_group_name = "rg-apimv2"
+location            = "westeurope"
+environment         = "dev"
+
+# IMPORTANT: APIM names are globally unique. Pick something nobody else has used.
+apim_name  = "apimv2may2026"
+apim_sku   = "StandardV2_1" # tier_capacity --> 1 unit
+# NOTE: azurerm 4.x only accepts `zones` on the Premium SKU.
+# Leave empty for StandardV2 (to zone-pin StandardV2, switch the apim module to azapi).
+apim_zones = []
+
+publisher_name  = "Vincent Rouet"
+publisher_email = "vincent.rouet@microsoft.com"
+
+tags = {
+  workload = "apim-demo"
+  owner    = "virouet"
+}
+
+# ---------------------------------------------------------------------------
+# Start empty. Uncomment / fill in as you grow the solution.
+# ---------------------------------------------------------------------------
+
+# apis = {
+#   "aircrafts" = {
+#     display_name  = "Aircrafts API"
+#     path          = "aircrafts"
+#     protocols     = ["https"]
+#     openapi_path  = "../apis/aircrafts.openapi.json"
+#     api_policy_xml_path = "../policies/aircrafts.xml"
+#     operation_policies = {
+#       # "get-readbookings" = "../policies/aircrafts-getBookings.xml"
+#     }
+#   }
+# }
+
+# products = {
+#   "starter" = {
+#     display_name          = "Starter"
+#     description           = "Starter product"
+#     subscription_required = true
+#     approval_required     = false
+#     published             = true
+#     api_names             = ["aircrafts"]
+#     policy_xml_path       = "../policies/product-starter.xml"
+#   }
+# }
+
+# subscriptions  = {}
+# named_values   = {}
+# backends       = {}
+# identity_providers = {}
+# users          = {}
+# groups         = {}
