@@ -130,80 +130,14 @@ Sum of all tenant RPM should stay **≤ deployment RPM** (with headroom).
 
 ---
 
-## 4. Worked Example — `gpt-4.1` Shared Across Tenants
-
-Example: Global Standard `gpt-4.1` deployment with **300,000 TPM / 1,800 RPM** quota, shared across 3 tenants on different tiers.
-
-> Always verify actual TPM/RPM quota in the Azure portal — limits vary by region and model version.
-
-### 4.1 Allocation plan
-Reserve ~15% headroom → usable **255,000 TPM / 1,530 RPM**.
-
-| Tenant | Tier | TPM | RPM | % of deployment |
-|---|---|---|---|---|
-| Tenant A | Gold | 150,000 | 900 | 50% |
-| Tenant B | Silver | 75,000 | 450 | 25% |
-| Tenant C | Bronze | 30,000 | 180 | 10% |
-| **Allocated** | | **255,000** | **1,530** | **85%** |
-| Headroom | | 45,000 | 270 | 15% |
-
-### 4.2 APIM setup
-- Proxy `https://<aoai>.openai.azure.com/openai/deployments/gpt-4.1/*`
-- Use **Managed Identity** with `Cognitive Services OpenAI User` role.
-- Create three **Products** (Gold/Silver/Bronze) with per-product policies.
-
-### 4.3 API-level policy (common)
-
-```xml
-<policies>
-  <inbound>
-    <base />
-    <authentication-managed-identity
-        resource="https://cognitiveservices.azure.com"
-        output-token-variable-name="msi-token" />
-    <set-header name="Authorization" exists-action="override">
-      <value>@("Bearer " + (string)context.Variables["msi-token"])</value>
-    </set-header>
-
-    <azure-openai-semantic-cache-lookup
-        score-threshold="0.05"
-        embeddings-backend-id="embeddings-backend"
-        embeddings-backend-auth="system-assigned">
-      <vary-by>@(context.Subscription.Id)</vary-by>
-    </azure-openai-semantic-cache-lookup>
-
-    <azure-openai-emit-token-metric namespace="AIGateway">
-      <dimension name="Subscription" value="@(context.Subscription.Id)" />
-      <dimension name="Tenant"       value="@(context.Subscription.Name)" />
-      <dimension name="Model"        value="gpt-4.1" />
-    </azure-openai-emit-token-metric>
-  </inbound>
-  <outbound>
-    <base />
-    <azure-openai-semantic-cache-store duration="3600" />
-  </outbound>
-</policies>
-```
-
-### 4.4 Product-level policies
-**Gold (150K TPM / 900 RPM):**
-```xml
-<azure-openai-token-limit counter-key="@(context.Subscription.Id)" tokens-per-minute="150000" estimate-prompt-tokens="true" />
-<rate-limit-by-key        counter-key="@(context.Subscription.Id)" calls="900" renewal-period="60" />
-```
-**Silver:** `tokens-per-minute="75000"`, `calls="450"`.
-**Bronze:** `tokens-per-minute="30000"`, `calls="180"`.
-
----
-
-## 5. Target Scenario — 8 Workload Teams, Single Tenant, No PTU
+## 4. Target Scenario — 8 Workload Teams, Single Tenant, No PTU
 
 Goal: **8 internal teams** each running their own Foundry project for building agents share centralized models. The customer wants **no team to ever see a 429**, and is **not using PTU**.
 
-### 5.1 Honest baseline
+### 4.1 Honest baseline
 Without PTU you cannot mathematically guarantee zero 429s — Azure OpenAI may throttle Pay-As-You-Go even when you are below your own configured limits. The design instead **makes 429s statistically negligible** through over-provisioning, pooling, retries, and smoothing.
 
-### 5.2 Strategy layers
+### 4.2 Strategy layers
 
 #### Layer 1 — Spread quota across regions
 Quota is granted **per subscription, per region, per model**. Multiple regions = multiplied capacity ceiling. Deploy `gpt-4.1` (Global Standard) in **2–3 regions** (e.g., Sweden Central, West Europe, France Central).
@@ -259,14 +193,14 @@ Route planning, intent classification, summarization to `gpt-4.1-mini` to preser
 
 ---
 
-## 6. Foundry Deployment Topology (PAYG, No PTU)
+## 5. Foundry Deployment Topology (PAYG, No PTU)
 
-### 6.1 Key concept: where models live
+### 5.1 Key concept: where models live
 - A **Foundry resource** (Azure resource, formerly "Azure AI Services" / "Azure OpenAI" account) owns **model deployments** and consumes **TPM/RPM quota**.
 - A **Foundry project** is a workspace *inside* a Foundry resource for agents, threads, evaluations. It does **not** own quota.
 - The 8 team projects **do not need their own model deployments** — they consume centralized models via APIM.
 
-### 6.2 Recommended topology
+### 5.2 Recommended topology
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -297,9 +231,13 @@ Route planning, intent classification, summarization to `gpt-4.1-mini` to preser
   └─────────┘   └─────────┘   └─────────┘
 ```
 
-### 6.3 Step 1 — Shared Foundry resources
-Create **2–3 Foundry resources** in different regions in a **platform subscription**.
-- Quota is per region per subscription → 3 regions ≈ 3× TPM ceiling
+### 5.3 Step 1 — Shared Foundry resources
+Create **2–3 Foundry resources** in different regions, typically inside **one shared platform subscription**.
+
+> **Single subscription is sufficient.** Azure OpenAI quota is granted per **(subscription × region × model × SKU)** — so deploying the same model in multiple **regions** within one subscription already gives you independent quota pools. Multiple subscriptions are only needed if you (a) hit the per-subscription regional quota ceiling and Microsoft denies further increases, (b) need finance-level chargeback at subscription granularity, or (c) require strict blast-radius isolation (e.g., prod vs non-prod).
+
+Why this works:
+- Quota is per region (per subscription) → 3 regions ≈ 3× TPM ceiling, all in the same subscription
 - Regional resilience (one region down → others absorb)
 - PAYG pricing identical across regions for the same SKU
 
@@ -310,7 +248,22 @@ Region picks (verify availability for gpt-4.1):
 
 > If EU data residency matters, choose **Data Zone Standard** (EU data zone) instead of Global Standard so traffic stays in the EU while still pooling capacity.
 
-### 6.4 Step 2 — Deploy models in each region
+**Recommended single-subscription layout:**
+```
+ONE PLATFORM SUBSCRIPTION
+├── rg-platform-ai-shared
+│    ├── foundry-swc      (gpt-4.1 GS, embedding GS)
+│    ├── foundry-we       (gpt-4.1 GS, embedding GS)
+│    ├── foundry-frc      (gpt-4.1 GS) — optional
+│    ├── apim-shared      (gateway, MI, policies, products)
+│    ├── appi-shared      (App Insights for token metrics)
+│    └── redis-shared     (semantic cache backend, optional)
+│
+└── rg-team-1 … rg-team-8  (Foundry projects, agent storage)
+```
+Teams get their own **resource groups** for RBAC and cost-tracking, while sharing the centrally-deployed models.
+
+### 5.4 Step 2 — Deploy models in each region
 
 | Model | SKU | Purpose |
 |---|---|---|
@@ -322,7 +275,7 @@ Important:
 - **Request quota increases upfront** via Azure portal → Quotas → support ticket. Default quotas are small; target **hundreds of thousands of TPM per region**.
 - Use **identical deployment names across regions** (e.g., `gpt-4.1`) so APIM can swap backends without rewriting paths.
 
-### 6.5 Step 3 — Wire APIM to the Foundry resources
+### 5.5 Step 3 — Wire APIM to the Foundry resources
 
 For each Foundry resource, register an APIM Backend:
 ```
@@ -330,11 +283,11 @@ foundry-swc   → https://foundry-swc.cognitiveservices.azure.com/openai
 foundry-we    → https://foundry-we.cognitiveservices.azure.com/openai
 foundry-frc   → https://foundry-frc.cognitiveservices.azure.com/openai
 ```
-Group into a load-balanced pool with circuit breaker (see §5.2 Layer 2).
+Group into a load-balanced pool with circuit breaker (see §4.2 Layer 2).
 
 Authenticate APIM → Foundry with **Managed Identity** + `Cognitive Services OpenAI User` role on each Foundry resource. No API keys.
 
-### 6.6 Step 4 — Connect each team's Foundry project to APIM
+### 5.6 Step 4 — Connect each team's Foundry project to APIM
 
 #### Pattern A — Custom model connection (recommended for agents)
 In each team's Foundry project:
@@ -357,20 +310,20 @@ client = AzureOpenAI(
 )
 ```
 
-### 6.7 What lives in each team's Foundry project
+### 5.7 What lives in each team's Foundry project
 **Yes:** Agents (definitions, instructions, tools), threads/runs, connections (APIM + team-specific tools like AI Search), evaluations, prompt flows, traces.
 **No:** Model deployments, quota allocation.
 
-Each team project can sit in **its own subscription / resource group** for cost segregation while still consuming centrally-pooled models.
+Each team project can sit in **its own resource group** (and optionally its own subscription) for cost segregation while still consuming centrally-pooled models. A single shared subscription for everything is also fully supported.
 
-### 6.8 Agent-specific tuning
+### 5.8 Agent-specific tuning
 Foundry agents tend to make **bursty multi-call patterns** (planner → tool → planner → tool):
 - Give the agent loop a longer client timeout so APIM has room to retry/queue silently.
 - Cache **embeddings** aggressively — agents re-embed identical tool descriptions constantly.
 
 ---
 
-## 7. End-to-End Deployment Checklist
+## 6. End-to-End Deployment Checklist
 
 ### Platform team (one-time)
 - [ ] Decide regions (e.g., Sweden Central + West Europe + France Central)
@@ -402,7 +355,7 @@ Foundry agents tend to make **bursty multi-call patterns** (planner → tool →
 
 ---
 
-## 8. Key Take-aways
+## 7. Key Take-aways
 
 1. **APIM is the AI Gateway.** All governance/control lives in policies, not in the model resource.
 2. **Centralize models, federate projects.** Foundry projects belong to teams; model deployments belong to the platform.
