@@ -2,6 +2,8 @@
 
 > A consolidated design note covering: what the Azure AI Gateway pattern is, how to handle TPM/RPM limits when models are shared, how to engineer for a near-zero 429 experience without PTU, and how to lay out Foundry resources and projects for 8 workload teams.
 
+> **Note on model choice:** `gpt-4.1` is used throughout this document as an **illustrative example**. The same patterns, policies, and topology apply to any Azure OpenAI / Foundry model (e.g., `gpt-4o`, `gpt-4o-mini`, `gpt-4.1-mini`, `o3`, `o4-mini`, embedding models). Substitute deployment names, TPM/RPM ratios, and SKU availability per your actual model.
+
 ---
 
 ## 1. What is the "Azure AI Gateway"?
@@ -323,7 +325,134 @@ Foundry agents tend to make **bursty multi-call patterns** (planner → tool →
 
 ---
 
-## 6. End-to-End Deployment Checklist
+## 6. Networking — Private Connectivity Across Regions
+
+Foundry resources can run behind VNets in a single subscription across multiple regions. The design has a few important nuances.
+
+### 6.1 Each region needs its own VNet
+VNets are **regional resources** — one VNet cannot span Sweden Central + West Europe + France Central. Pattern:
+
+```
+Sub: platform
+├── vnet-hub-swc       (Sweden Central) — APIM + shared services
+├── vnet-spoke-swc     (Sweden Central) — foundry-swc private endpoint
+├── vnet-spoke-we      (West Europe)    — foundry-we   private endpoint
+└── vnet-spoke-frc     (France Central) — foundry-frc  private endpoint
+```
+Connect them with **VNet peering** (global peering works cross-region) or **Azure Virtual WAN** at scale.
+
+### 6.2 Foundry private networking — two options
+
+**Option A: Private Endpoints on each Foundry resource (most common)**
+- Each Foundry resource gets a Private Endpoint in the spoke VNet of its region.
+- Public network access disabled on the resource.
+- DNS resolved via Azure Private DNS Zone `privatelink.cognitiveservices.azure.com` (one zone, linked to all VNets).
+
+**Option B: Foundry network injection / managed VNet**
+- For where the **agent runtime** runs, separate from model endpoint privacy.
+- Optional for this design (centralized models + per-team projects).
+
+### 6.3 APIM placement
+
+**Pattern 1 — APIM in one region (recommended for most cases)**
+- APIM deployed in **internal VNet mode** (Premium) or **Standard v2 with VNet integration**.
+- Lives in the hub VNet (e.g., Sweden Central).
+- Reaches foundry-we / foundry-frc via peered spokes and their Private Endpoints.
+- ✅ Simple, single gateway URL. ❌ APIM itself is single-region.
+
+```
+       ┌─────────────────────────────┐
+       │ APIM (Sweden Central)       │
+       │ Internal VNet mode          │
+       └──┬──────────┬──────────┬────┘
+          │ peering  │ peering  │ peering
+   ┌──────▼───┐ ┌────▼─────┐ ┌──▼───────┐
+   │ PE       │ │ PE       │ │ PE       │
+   │ foundry- │ │ foundry- │ │ foundry- │
+   │ swc      │ │ we       │ │ frc      │
+   └──────────┘ └──────────┘ └──────────┘
+```
+
+**Pattern 2 — APIM multi-region (Premium only)**
+- Primary + secondary gateway units across regions, each in its own VNet.
+- Front Door / Traffic Manager in front for a single anycast URL.
+- ✅ Survives regional APIM outage. ❌ More complex; usually overkill — backend pooling already handles model-region failures.
+
+### 6.4 Cross-region traffic — performance & cost
+When APIM in Sweden Central calls foundry-we / foundry-frc:
+- **Latency:** typically 15–30 ms intra-EU; negligible vs. LLM inference time.
+- **Egress cost:** ~$0.02/GB inbound + outbound on peering — a few cents per million tokens.
+- **Bandwidth:** No practical limit at LLM call volumes.
+
+> **Data residency caveat:** Global Standard deployments may route inference outside the deployment region by Microsoft. The Private Endpoint pins the *control plane*, not where the model actually runs. Use **Data Zone Standard** (EU only) if you need traffic to stay in the EU — fully compatible with private endpoints.
+
+### 6.5 DNS — the #1 source of bugs
+
+- Use **one Azure Private DNS Zone** for `privatelink.cognitiveservices.azure.com`.
+- **Link it to every VNet** (hub + all spokes in all regions).
+- Each Private Endpoint auto-registers an A record (e.g., `foundry-swc → 10.1.0.4`, `foundry-we → 10.2.0.4`, `foundry-frc → 10.3.0.4`).
+- Public DNS for `foundry-we.cognitiveservices.azure.com` CNAMEs into the privatelink zone automatically.
+- Also link `privatelink.azure-api.net` (for APIM if internal mode) to all VNets that need to call APIM privately.
+- For **on-premises** clients, set conditional forwarders for `privatelink.cognitiveservices.azure.com` → 168.63.129.16 via a private DNS resolver or **DNS Private Resolver** inbound endpoint.
+
+### 6.6 Egress from team Foundry projects
+If team projects are network-restricted:
+- Agents call APIM → APIM is private → teams must reach the APIM private IP.
+- **Foundry standard agents** (Microsoft-managed compute): outbound flows via Microsoft backbone — just ensure private DNS resolves correctly.
+- **Bring-your-own-compute** agents: peer the team VNet to the hub.
+
+### 6.7 Recommended network design (one subscription, three regions)
+
+```
+┌─────────────────────────── PLATFORM SUBSCRIPTION ────────────────────────────┐
+│                                                                              │
+│   Sweden Central (hub)              West Europe                France Central │
+│  ┌─────────────────────┐         ┌────────────────┐         ┌──────────────┐ │
+│  │ vnet-hub-swc        │◄═══════►│ vnet-spoke-we  │◄═══════►│vnet-spoke-frc│ │
+│  │                     │ peering │                │ peering │              │ │
+│  │ • APIM (Internal)   │         │ • PE foundry-we│         │ • PE foundry-│ │
+│  │ • Azure Firewall    │         │                │         │   frc        │ │
+│  │ • Private DNS link  │         │ • Private DNS  │         │ • Private DNS│ │
+│  │ • PE foundry-swc    │         │   link         │         │   link       │ │
+│  │ • PE Redis (cache)  │         │                │         │              │ │
+│  │ • PE App Insights   │         │                │         │              │ │
+│  └─────────────────────┘         └────────────────┘         └──────────────┘ │
+│                                                                              │
+│   Private DNS Zone: privatelink.cognitiveservices.azure.com (linked to all) │
+│   Private DNS Zone: privatelink.azure-api.net (linked to all)               │
+└──────────────────────────────────────────────────────────────────────────────┘
+                              ▲
+                              │ private (PE / VPN / ExpressRoute)
+                              │
+            ┌──────────────────┴──────────────────┐
+            │       8 Team Foundry projects        │
+            │  (can be in same sub or others)      │
+            └─────────────────────────────────────┘
+```
+
+### 6.8 APIM SKU choice
+
+| Need | APIM SKU |
+|---|---|
+| Internal VNet mode (fully private gateway) | **Premium** or **Standard v2** with VNet integration |
+| Multi-region gateways | **Premium** only |
+| Lowest-cost private | **Standard v2** |
+| Dev/test, public OK | Developer / Basic v2 |
+
+**Premium** is the typical pick for shared enterprise platforms; **Standard v2** is a viable cheaper alternative if you don't need multi-region or Developer Portal customization.
+
+### 6.9 Networking summary
+- ✅ One subscription, three regional VNets, peered.
+- ✅ Each Foundry resource → Private Endpoint in its regional spoke.
+- ✅ Single shared Private DNS Zone for cognitiveservices, linked everywhere.
+- ✅ APIM in the hub (Premium or Standard v2, internal mode).
+- ✅ Cross-region peering for backend pool — latency/cost negligible.
+- ⚠️ Use Data Zone Standard if traffic must stay in the EU.
+- ⚠️ DNS configuration is the #1 source of bugs — link the privatelink zone everywhere.
+
+---
+
+## 7. End-to-End Deployment Checklist
 
 ### Platform team (one-time)
 - [ ] Decide regions (e.g., Sweden Central + West Europe + France Central)
@@ -355,7 +484,7 @@ Foundry agents tend to make **bursty multi-call patterns** (planner → tool →
 
 ---
 
-## 7. Key Take-aways
+## 8. Key Take-aways
 
 1. **APIM is the AI Gateway.** All governance/control lives in policies, not in the model resource.
 2. **Centralize models, federate projects.** Foundry projects belong to teams; model deployments belong to the platform.
