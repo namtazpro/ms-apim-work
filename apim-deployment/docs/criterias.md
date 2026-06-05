@@ -1,4 +1,4 @@
-| Criterion | Opt 1 — APIM everywhere | Opt 2 — No APIM (direct/thin-proxy) | Opt 3 — Conditional/hybrid Only in target cases| Opt 4 — Layered MS plane |
+| Criterion | Opt 1 — APIM everywhere | Opt 2 — No APIM (direct/thin-proxy) | Opt 3 — Conditional/hybrid Only in target cases| AlwaysOn— Layered MS plane |
 |---|---|---|---|---|
 | 1. Central governance & identity | ✓ one plane, but key-based | ✗ DIY per division | ◑ APIM where it pays ie enable multiple protocol for single agent | **✓** Entra Agent ID across all clouds |
 | 2. Global token/rate-cap fidelity †| ✓ via existing LLM-fronting APIM | ✓ via existing LLM-fronting APIM | ✓ via existing LLM-fronting APIM | ✓ via existing LLM-fronting APIM |
@@ -13,3 +13,9 @@
 | **Latency-critical fit (D1/D2 loops)** | ✗ | ✓ | ✓ | ✓ |
 | **Air-gapped Defence fit (D5)** | ✗ unusable | ◑ self-contained only | ◑ self-contained only | ✗ suite stops at air-gap |
 | **Controls ALL agents (incl. non-Azure)** | ✗ multiple control plane | ✗ Agent 365 | ✗ Agent 365 | **◑ closest** (boundary + telemetry for 3P/air-gap) |
+
+
+
+
+
+
